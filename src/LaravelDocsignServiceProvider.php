@@ -3,6 +3,8 @@
 namespace JacobTilly\LaravelDocsign;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Route;
+use JacobTilly\LaravelDocsign\Console\Commands\InstallDocsign;
 
 class LaravelDocsignServiceProvider extends ServiceProvider
 {
@@ -17,6 +19,13 @@ class LaravelDocsignServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->bootForConsole();
         }
+
+        if (config('docsign.callbacks.enabled')) {
+            Route::prefix('docsign/callbacks')->group(function () {
+                Route::get('/document-complete', [Http\Controllers\CallbackController::class, 'documentComplete']);
+                Route::get('/party-sign', [Http\Controllers\CallbackController::class, 'partySign']);
+            });
+        }
     }
 
     /**
@@ -26,12 +35,17 @@ class LaravelDocsignServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/laravel-docsign.php', 'laravel-docsign');
+        $this->mergeConfigFrom(__DIR__.'/../config/laravel-docsign.php', 'docsign');
 
         // Register the service the package provides.
         $this->app->singleton('laravel-docsign', function ($app) {
             return new LaravelDocsign;
         });
+
+        // Register the installation command
+        $this->commands([
+            \JacobTilly\LaravelDocsign\Console\Commands\InstallDocsign::class,
+        ]);
     }
 
     /**
@@ -56,5 +70,10 @@ class LaravelDocsignServiceProvider extends ServiceProvider
             __DIR__.'/../config/laravel-docsign.php' => config_path('docsign.php'),
         ], 'docsign.config');
 
+        // Publishing example jobs.
+        $this->publishes([
+            __DIR__.'/Jobs/DocumentCompleteJob.php' => app_path('Jobs/DocumentCompleteJob.php'),
+            __DIR__.'/Jobs/PartySignJob.php' => app_path('Jobs/PartySignJob.php'),
+        ], 'docsign.jobs');
     }
 }

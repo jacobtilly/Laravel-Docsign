@@ -70,6 +70,11 @@ class LaravelDocsign
         $response = Http::post('https://docsign.se/api/documents', array_merge($data, ['api_key' => $this->apiKey]));
         $responseData = $response->json();
 
+        if (config('docsign.callbacks.enabled')) {
+            $data['callback_url'] = url('/docsign/callbacks/document-complete');
+            $data['callback_sign_url'] = url('/docsign/callbacks/party-sign');
+        }
+
         if (isset($responseData['success']) && $responseData['success']) {
             $documentId = $responseData['document_id'] ?? null;
             if ($documentId) {
@@ -123,7 +128,7 @@ class LaravelDocsign
         return array_map(fn($party) => new Party($party), $response->json());
     }
 
-    public function editDocument($documentId, $action)
+    protected function editDocument($documentId, $action)
     {
         $response = Http::post('https://docsign.se/api/document/edit', [
             'api_key' => $this->apiKey,
@@ -178,7 +183,16 @@ class LaravelDocsign
     }
 
     public function getParty($id)
+    // Temporary implementation until the API supports fetching a single party by ID
     {
-        throw new DocsignException("This method is not implemented yet.");
+        $parties = $this->getParties();
+
+        foreach ($parties as $party) {
+            if ($party->id == $id) {
+                return $party;
+            }
+        }
+
+        throw new DocsignException("Party with ID {$id} not found.");
     }
 }
