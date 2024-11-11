@@ -1,159 +1,130 @@
-# Laravel Inleed DocSign Integration
+# Laravel-Docsign
 
 A Laravel package to seamlessly integrate with the Inleed DocSign API for digital signatures (using email or Swedish "bankid"), enabling you to manage Docsign documents and parties directly from your Laravel application.
 
+
+## Buy me a coffee?
+
+If you use this package, please consider [buying me a coffee](https://buymeacoffee.com/jacobtilly) :)
+
+
 ## Installation
 
-To install the package, use Composer:
+Install the project with composer:
 
 ```bash
 composer require jacobtilly/laravel-docsign
 ```
 
-Add your Docsign API key to the .env file:
+### Obtain an API key
+Obtain an API key from the official [Docsign website](https://docsign.se).
 
-```
-DOCSIGN_API_KEY=your-docsign-api-key
-```
+### Automatic setup
 
-## Publish Configuration
-The configuration file can be published using
+To setup the configuration and to export the config, as well as the jobs (see the section about Callbacks), run the following Artisan command:
 
 ```bash
+php artisan docsign:install
+```
+This will publish the config/docsign.php, and create two jobs to your Laravel application: `DocsignDocumentCompleteJob` (dispatched when every party has signed a document created through this package) and `DocsignPartySignJob` (dispatched when someone signs a document created through this package).
+
+### Manual setup
+Set your Inleed Docsign API key in your `.env`file:
+```
+DOCSIGN_API_KEY="your key here"
+```
+
+Publish the configuration with 
+```
 php artisan vendor:publish --provider="JacobTilly\LaravelDocsign\LaravelDocsignServiceProvider"
 ```
+## Configuration
+The configuration file grabs your API key from the .env file as well as allows you to setup the callback functionality. Please see the section on callbacks for more information.
 
-## Obtain a DocSign API Key
-To obtain an API key, register and log in at docsign.se. Follow their instructions to generate an API key.
+## Usage
 
-## Documentation
-Below are the methods provided by this package and the fields required for each operation.
+Please see the official API documentation for more information about how to use the methods.
 
-### Retrieve All Documents
-
-```php
-use JacobTilly\LaravelDocsign\Facades\Docsign;
-
-$documents = Docsign::getDocuments();
-```
-
-This method retrieves all documents available in your DocSign account. Each document object includes:
-* id: The unique identifier for the document.
-* name: The name of the document.
-* state: The state of the document (e.g., pending, completed).
-* comment: Any comments associated with the document.
-* createdAt: The creation date of the document.
-* originalPdfUrl: URL to the original PDF.
-* signedPdfUrl: URL to the signed PDF, null until signed.
-* parties: An array of parties associated with the document.
-
-### Retrieve a Specific Document
+#### Get all documents
 
 ```php
-use JacobTilly\LaravelDocsign\Facades\Docsign;
-
-$document = Docsign::getDocument($id);
+Docsign::getDocuments()
 ```
 
-This method retrieves one document with specified ID. Returns follow the document format from the `getDocuments()` method.
+#### Get a document
 
-### Retrieve All Parties
+```http
+Docsign::getDocument($document_id)
+```
+
+#### Get all parties
 
 ```php
-use JacobTilly\LaravelDocsign\Facades\Docsign;
-
-$parties = Docsign::getParties();
+Docsign::getParties()
 ```
 
-This method retrieves all parties available in your DocSign account. Each party object includes:
-* id: The unique identifier for the party.
-* name: The name of the party.
-* company: The company the party is associated with.
-* email: The email address of the party.
-* phoneNumber: The phone number of the party.
-* signMethod: The method of signing (e.g., bankid, email).
-* externalId: An optional external identifier from your own system.
-
-### Retrieve Account Information
+#### Get a party
 
 ```php
-use JacobTilly\LaravelDocsign\Facades\Docsign;
-
-$account = Docsign::getAccount();
+Docsign::getParty($party_id)
 ```
-This method retrieves your Inleed DocSign account information, including:
-* email: The email associated with your DocSign account.
-* balance: The current balance in your DocSign account, shown in "ören".
 
-### Create a Party
-
+#### Create a document
 ```php
-use JacobTilly\LaravelDocsign\Facades\Docsign;
-
-$createPartyData = [
-  "name" => "Jacob Tilly", // Required
-  "company" => "Jacobs firma",
-  "email" => "example@example.com", // Required if no phone number
-  "phone_number" => "+46701234567", // Required if no email
-  "sign_method" => "bankid", // Required, bankid or email
-  "external_id" => "1338" // Optional, ID from your own system
-];
-
-try {
-    $party = Docsign::createParty($createPartyData);
-    echo "Party created with ID: " . $party->id;
-} catch (DocsignException $e) {
-    echo "Error: " . $e->getMessage();
-}
+Docsign::createDocument($data)
 ```
+$data is an array with the items included from the official API documentation. Note, however, that callback URLs should not be included if using the automatic callback handling from the package (they will automatically be included).
 
-This method creates a party ("undertecknare") with the specified information. On success, it will return the created party. Please note that the Docsign API only returns the created party ID on creation, and does not have an endpoint for retrieving a single party. For convenience, this method returns a Party object, but please note that the fields (other than ID) are just the request data repeated back, without any validation against the API. 
-
-> **Note**: If the createParty method is called with data including an external_id that equals the external_id of an existing party, a new party will not be created (and the existing one will not be updated). In this case, as the method returns a Party object where all fields except ID are just the request data repeated back, the Party object returned might not correspond to the actual party that exists in the Docsign platform.
-
-### Create a Document
-
+#### Create a party
 ```php
-use JacobTilly\LaravelDocsign\Facades\Docsign;
+Docsign::createParty($data)
+```
+$data is an array with the items included from the official API documentation.
 
-$createDocumentData = [
-  "name" => "Agreement", // Required
-  "parties" => [12345, 23456], // Required, at least one valid party ID
-  "attachments" => [
-    [
-      "name" => "Sample PDF", // Required
-      "url" => "https://pdf.com/samplepdf.pdf" // Required if no base64_content
-    ]
-  ],
-  "send_reminders" => true,
-  "comment" => "Please sign!",
-  "send_receipt" => true,
-  "send_notifications" => false,
-  "callback_url" => "https://example.dev/callback",
-  "callback_sign_url" => "https://example.dev/callback/party-sign"
-];
+#### Pause/unpause a document
+```php
+Docsign::pauseDocument($document_id)
+Docsign::unpauseDocument($document_id)
+```
+Will pause/unpause a document provided it is pending – a signed document cannot be paused.
 
-try {
-    $document = Docsign::createDocument($createDocumentData);
-    echo "Document created: " . $document->name;
-} catch (DocsignException $e) {
-    echo "Error: " . $e->getMessage();
-}
+#### Archive/unarchive a document
+```php
+Docsign::archiveDocument($document_id)
+Docsign::unarchiveDocument($document_id)
+```
+Will archive/unarchive a document provided it is signed – only signed documents can be archived.
+
+#### Delete a document
+```php
+Docsign::deleteDocument($document_id, $force = false)
+```
+Will delete a document. Only completed documents and paused document can be deleted. If the second force parameter is included and true, it will attempt to pause the document before deleting it (ie force-deleting a pending document).
+
+#### Get Account information
+```php
+Docsign::getAccount()
 ```
 
-Creates a party. For possible parameters, please refer to the Docsign API reference.
-
-## Further Documentation
-For more detailed documentation on the Inleed DocSign API, visit DocSign's documentation page. Note that you will need an account to access it.
 
 ## Credits
 This package is not officially affiliated with Inleed DocSign. DocSign is a service provided by Inleed for electronic signatures. For more information, visit docsign.se.
 
+
 ## License
-This package is licensed under the MIT License. See the LICENSE file for more information.
+
+This package is licensed under the [MIT](https://choosealicense.com/licenses/mit/) License.
+
+> Copyright (c) 2024, Jacob Tilly <dev@jacobtilly.com>
+> 
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+> 
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+> 
+> THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 
 ## Contributing
-Contributions are welcome! Please open an issue or submit a pull request.
 
-## Buy me a coffee?
-If you use this package, please consider [https://buymeacoffee.com/jacobtilly](buying me a coffee) :)
+Contributions are always welcome! Send a pull request or an issue to contribute.
