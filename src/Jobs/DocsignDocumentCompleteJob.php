@@ -8,7 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class DocumentCompleteJob implements ShouldQueue
+class DocsignDocumentCompleteJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -31,6 +31,6 @@ class DocumentCompleteJob implements ShouldQueue
      */
     public function handle()
     {
-        logger()->info('The callbacks function is enabled but the jobs are either not published or not modified. You just received a "document complete" callback from Inleed Docsign. For convenience, this default job will log the incoming data here.', $this->data);
+        logger()->info('The callbacks function is enabled but the jobs are not created. You just received a "document complete" callback from Inleed Docsign. For convenience, this default job will log the incoming data here.', $this->data);
     }
 }

@@ -69,11 +69,5 @@ class LaravelDocsignServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/laravel-docsign.php' => config_path('docsign.php'),
         ], 'docsign.config');
-
-        // Publishing example jobs.
-        $this->publishes([
-            __DIR__.'/Jobs/DocumentCompleteJob.php' => app_path('Jobs/DocumentCompleteJob.php'),
-            __DIR__.'/Jobs/PartySignJob.php' => app_path('Jobs/PartySignJob.php'),
-        ], 'docsign.jobs');
     }
 }

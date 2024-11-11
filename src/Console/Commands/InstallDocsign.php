@@ -17,8 +17,8 @@ class InstallDocsign extends Command
         $this->info('Configuration published.');
 
         $this->info('Creating example jobs...');
-        $this->call('make:job', ['name' => 'DocumentCompleteJob']);
-        $this->call('make:job', ['name' => 'PartySignJob']);
+        $this->call('make:job', ['name' => 'DocsignDocumentCompleteJob']);
+        $this->call('make:job', ['name' => 'DocsignPartySignJob']);
         $this->info('Jobs created.');
 
         $apiKey = $this->ask('Enter your Docsign API key');
