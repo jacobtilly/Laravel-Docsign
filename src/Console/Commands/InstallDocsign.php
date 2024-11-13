@@ -16,6 +16,27 @@ class InstallDocsign extends Command
         $this->call('vendor:publish', ['--tag' => 'docsign.config']);
         $this->info('Configuration published.');
 
+        $this->info('Publishing routes...');
+        $this->call('vendor:publish', ['--tag' => 'docsign.routes']);
+        $this->info('Routes published.');
+
+        $this->info("Including routes file in web.php...");
+        $webRoutesPath = base_path('routes/web.php');
+        $docsignRoutesInclude = "\nrequire base_path('routes/docsign/callbacks.php');\n";
+
+        if (File::exists($webRoutesPath)) {
+            $webRoutesContent = File::get($webRoutesPath);
+
+            if (!str_contains($webRoutesContent, 'docsign/callbacks.php')) {
+                File::append($webRoutesPath, $docsignRoutesInclude);
+                $this->info('Docsign routes included in web.php.');
+            } else {
+                $this->info('Docsign routes already included in web.php.');
+            }
+        } else {
+            $this->error('web.php file not found. Please ensure it exists and try again.');
+        }
+
         $this->info('Creating example jobs...');
         $this->call('make:job', ['name' => 'DocsignDocumentCompleteJob']);
         $this->call('make:job', ['name' => 'DocsignPartySignJob']);

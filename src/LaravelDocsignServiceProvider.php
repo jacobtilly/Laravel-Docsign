@@ -15,16 +15,15 @@ class LaravelDocsignServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+
         // Publishing is only necessary when using the CLI.
         if ($this->app->runningInConsole()) {
             $this->bootForConsole();
         }
 
+        // Conditionally load callback routes
         if (config('docsign.callbacks.enabled')) {
-            Route::prefix('docsign/callbacks')->group(function () {
-                Route::get('/document-complete', [Http\Controllers\CallbackController::class, 'documentComplete']);
-                Route::get('/party-sign', [Http\Controllers\CallbackController::class, 'partySign']);
-            });
+            $this->loadRoutesFrom(__DIR__.'/../routes/callbacks.php');
         }
     }
 
@@ -69,5 +68,10 @@ class LaravelDocsignServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/laravel-docsign.php' => config_path('docsign.php'),
         ], 'docsign.config');
+
+        // Publish the routes file if you want users to customize it
+        $this->publishes([
+            __DIR__.'/../routes/callbacks.php' => base_path('routes/docsign/callbacks.php'),
+        ], 'docsign.routes');
     }
 }
