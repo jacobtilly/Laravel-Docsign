@@ -71,8 +71,8 @@ class LaravelDocsign
         $responseData = $response->json();
 
         if (config('docsign.callbacks.enabled')) {
-            $data['callback_url'] = url('/docsign/callbacks/document-complete');
-            $data['callback_sign_url'] = url('/docsign/callbacks/party-sign');
+            $data['callback_url'] = config('docsign.callbacks.document_complete_callback_url');
+            $data['callback_sign_url'] = config('docsign.callbacks.party_sign_callback_url');
         }
 
         if (isset($responseData['success']) && $responseData['success']) {

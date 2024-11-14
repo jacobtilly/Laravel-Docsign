@@ -18,5 +18,7 @@ return [
         'enabled' => true,
         'document_complete_job' => \JacobTilly\LaravelDocsign\Jobs\DocsignDocumentCompleteJob::class,
         'party_sign_job' => \JacobTilly\LaravelDocsign\Jobs\DocsignPartySignJob::class,
+        'document_complete_callback_url' => route("docsign.callbacks.document-complete"),
+        'party_sign_callback_url' => route("docsign.callbacks.party-sign"),
     ],
 ];
