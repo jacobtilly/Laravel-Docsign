@@ -67,13 +67,13 @@ class LaravelDocsign
 
     public function createDocument(array $data)
     {
-        $response = Http::post('https://docsign.se/api/documents', array_merge($data, ['api_key' => $this->apiKey]));
-        $responseData = $response->json();
-
         if (config('docsign.callbacks.enabled')) {
             $data['callback_url'] = config('docsign.callbacks.document_complete_callback_url')();
             $data['callback_sign_url'] = config('docsign.callbacks.party_sign_callback_url')();
         }
+
+        $response = Http::post('https://docsign.se/api/documents', array_merge($data, ['api_key' => $this->apiKey]));
+        $responseData = $response->json();
 
         if (isset($responseData['success']) && $responseData['success']) {
             $documentId = $responseData['document_id'] ?? null;
